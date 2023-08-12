@@ -1,1 +1,29 @@
-test1
+pool:
+  vmImage: 'ubuntu-latest'
+
+name: $(Build.BuildId)
+
+trigger:
+  branches:
+    include:
+    - main
+
+resources:
+  repositories:
+    - repository: sd4780_msa
+      type: git
+      name: 'Azure pipeline/sd4780_msa'
+      ref: main
+      trigger:
+        branches:
+          include:
+            - main
+
+variables:
+- name: frontend_app_dir
+  value: 'src/frontend-app'
+
+parameters:
+- name: cleanNpmCache
+  type: boolean
+  default: false
