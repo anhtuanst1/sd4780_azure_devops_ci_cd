@@ -16,3 +16,7 @@ parameters:
 - name: cleanNpmCache
   type: boolean
   default: false
+
+steps:
+  - script: |
+      echo "Hello Azure Devops"
