@@ -17,10 +17,6 @@ parameters:
   type: boolean
   default: false
 
-jobs:
-- job: MyJob
-  pool:
-    name: 'default'
-  steps:
-    - script: |
-        echo "Hello Azure Devops"
+steps:
+  - script: |
+      echo "Hello Azure Devops"
