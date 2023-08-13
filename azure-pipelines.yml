@@ -20,7 +20,7 @@ parameters:
 jobs:
 - job: MyJob
   pool:
-    name: 'self-hosted-agent-pool'
+    name: 'default'
   steps:
     - script: |
         echo "Hello Azure Devops"
