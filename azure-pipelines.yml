@@ -3,10 +3,129 @@ pool:
 
 name: $(Build.BuildId)
 
+trigger:
+  branches:
+    include:
+    - main
+
+resources:
+  repositories:
+    - repository: sd4780_msa
+      type: git
+      name: 'sd4780-devops/sd4780_msa'
+      ref: main
+      trigger:
+        branches:
+          include:
+            - main
+
+variables:
+- name: backend_app_dir
+  value: 'app/sd4780_msa/src/backend'
+- name: frontend_app_dir
+  value: 'app/sd4780_msa/src/frontend'
+
+parameters:
+- name: cleanNpmCache
+  type: boolean
+  default: false
+
 jobs:
-- job: Job
+- job: Job_CI
   pool:
-    name: 'default'
+    name: 'Azure Pipelines'
   steps:
-    - script: |
-        echo "Hello Azure Devops 2"
+  - task: Bash@3
+    displayName: 'Clone projects with scripts'
+    inputs:
+      targetType: filePath
+      filePath: ./build/gitClone.sh
+
+  - task: NodeTool@0
+    displayName: 'Install Node.js'
+    inputs:
+      versionSpec: '16.x'
+
+  - ${{ if eq(parameters.cleanNpmCache, true) }}:
+    - task: CmdLine@2
+      displayName: 'BackEnd - npm clean cache'
+      inputs:
+        script: |
+          npm cache clean --force
+          npm cache verify
+        workingDirectory: $(backend_app_dir)
+
+  - template: templates/app-npm-build.yml
+    parameters:
+      appDir: $(backend_app_dir)
+      appName: BackEnd App
+
+  - task: Docker@1
+    displayName: 'Build an image BackEnd'
+    inputs:
+      azureSubscriptionEndpoint: 'Azure ACR Subscription (015efe71-65eb-4453-a4b3-ba0b62119434)'
+      azureContainerRegistry: tuanphama3containerregistry.azurecr.io
+      command: Build an image
+      dockerFile: $(backend_app_dir)/Dockerfile
+      buildContext: '**'
+      imageName:  'acr-tuanphama3-devops-backend'
+
+  - task: Docker@1
+    displayName: 'Push an image BackEnd'
+    inputs:
+      azureSubscriptionEndpoint: 'Azure ACR Subscription (015efe71-65eb-4453-a4b3-ba0b62119434)'
+      azureContainerRegistry: tuanphama3containerregistry.azurecr.io
+      command: Push an image
+      buildContext: '**'
+      imageName:  'acr-tuanphama3-devops-backend'
+
+  - ${{ if eq(parameters.cleanNpmCache, true) }}:
+    - task: CmdLine@2
+      displayName: 'FrontEnd - npm clean cache'
+      inputs:
+        script: |
+          npm cache clean --force
+          npm cache verify
+        workingDirectory: $(frontend_app_dir)
+
+  - template: templates/app-npm-build.yml
+    parameters:
+      appDir: $(frontend_app_dir)
+      appName: FrontEnd App
+
+  - task: Docker@1
+    displayName: 'Build an image FrontEnd'
+    inputs:
+      azureSubscriptionEndpoint: 'Azure ACR Subscription (015efe71-65eb-4453-a4b3-ba0b62119434)'
+      azureContainerRegistry: tuanphama3containerregistry.azurecr.io
+      command: Build an image
+      dockerFile: $(frontend_app_dir)/Dockerfile
+      buildContext: '**'
+      imageName:  'acr-tuanphama3-devops-frontend'
+
+  - task: Docker@1
+    displayName: 'Push an image FrontEnd'
+    inputs:
+      azureSubscriptionEndpoint: 'Azure ACR Subscription (015efe71-65eb-4453-a4b3-ba0b62119434)'
+      azureContainerRegistry: tuanphama3containerregistry.azurecr.io
+      command: Push an image
+      buildContext: '**'
+      imageName:  'acr-tuanphama3-devops-frontend'
+- job: Job_CD
+  dependsOn: Job_CI
+  pool:
+    name: 'Azure Pipelines'
+  steps:
+  - script: echo "This is Job_CD, which depends on Job_CI"
+    displayName: "Run Job_CD after Job_CI"
+
+  - task: KubernetesManifest@1
+    inputs:
+      action: 'deploy'
+      connectionType: 'azureResourceManager'
+      azureSubscriptionConnection: 'Azure ACR Subscription (015efe71-65eb-4453-a4b3-ba0b62119434)'
+      azureResourceGroup: 'tuanphama3ResourceGroup'
+      kubernetesCluster: 'tuanphama3AKSCluster'
+      useClusterAdmin: true
+      namespace: 'aks-tuanphama3-ns'
+      manifests: 'deployment.yaml'

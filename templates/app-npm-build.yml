@@ -1,0 +1,15 @@
+parameters:
+- name: appDir
+  default: ''
+
+- name: appName
+  default: ''
+
+steps:
+- task: CmdLine@2
+  displayName: ' ${{ parameters.appName }} - npm install'
+  inputs:
+    script: |
+      npm install
+    workingDirectory:  ${{ parameters.appDir }}
+    failOnStderr: false
