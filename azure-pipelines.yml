@@ -17,6 +17,10 @@ parameters:
   type: boolean
   default: false
 
-steps:
-  - script: |
-      echo "Hello Azure Devops"
+jobs:
+- job: MyJob
+  pool:
+    name: 'self-hosted-agent-pool'
+  steps:
+    - script: |
+        echo "Hello Azure Devops"
