@@ -3,20 +3,10 @@ pool:
 
 name: $(Build.BuildId)
 
-trigger:
-  branches:
-    include:
-    - main
-
-variables:
-- name: frontend_app_dir
-  value: 'src/frontend-app'
-
-parameters:
-- name: cleanNpmCache
-  type: boolean
-  default: false
-
-steps:
-  - script: |
-      echo "Hello Azure Devops"
+jobs:
+- job: Job
+  pool:
+    name: 'default'
+  steps:
+    - script: |
+        echo "Hello Azure Devops 2"
