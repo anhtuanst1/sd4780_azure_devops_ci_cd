@@ -1,0 +1,80 @@
+pool:
+  vmImage: 'ubuntu-latest'
+
+name: $(Build.BuildId)
+
+resources:
+  repositories:
+    - repository: sd4780_msa
+      type: git
+      name: 'sd4780-devops/sd4780_msa'
+      ref: main
+
+variables:
+- name: k8s_mongo_path
+  value: 'app/sd4780_msa/k8s/mongodb.yml'
+- name: k8s_backend_path
+  value: 'app/sd4780_msa/k8s/backend.yml'
+- name: k8s_frontend_path
+  value: 'app/sd4780_msa/k8s/frontend.yml'
+- name: k8s_ingress_path
+  value: 'app/sd4780_msa/k8s/ingress.yml'
+
+jobs:
+- job: JobDeploy
+  pool:
+    name: 'Azure Pipelines'
+  steps:
+  - task: Bash@3
+    displayName: 'Clone projects with scripts'
+    inputs:
+      targetType: filePath
+      filePath: ./build/gitClone.sh
+
+  - task: KubernetesManifest@1
+    displayName: 'Create StorageClass, pvc and database'
+    inputs:
+      action: 'deploy'
+      connectionType: 'azureResourceManager'
+      azureSubscriptionConnection: 'Azure ACR Subscription (015efe71-65eb-4453-a4b3-ba0b62119434)'
+      azureResourceGroup: 'tuanphama3ResourceGroup'
+      kubernetesCluster: 'tuanphama3AKSCluster'
+      useClusterAdmin: true
+      namespace: 'aks-tuanphama3-ns'
+      manifests: '$(k8s_mongo_path)'
+
+  - task: KubernetesManifest@1
+    displayName: 'Create BackEnd'
+    inputs:
+      action: 'deploy'
+      connectionType: 'azureResourceManager'
+      azureSubscriptionConnection: 'Azure ACR Subscription (015efe71-65eb-4453-a4b3-ba0b62119434)'
+      azureResourceGroup: 'tuanphama3ResourceGroup'
+      kubernetesCluster: 'tuanphama3AKSCluster'
+      useClusterAdmin: true
+      namespace: 'aks-tuanphama3-ns'
+      manifests: '$(k8s_backend_path)'
+
+  - task: KubernetesManifest@1
+    displayName: 'Create FrontEnd'
+    inputs:
+      action: 'deploy'
+      connectionType: 'azureResourceManager'
+      azureSubscriptionConnection: 'Azure ACR Subscription (015efe71-65eb-4453-a4b3-ba0b62119434)'
+      azureResourceGroup: 'tuanphama3ResourceGroup'
+      kubernetesCluster: 'tuanphama3AKSCluster'
+      useClusterAdmin: true
+      namespace: 'aks-tuanphama3-ns'
+      manifests: '$(k8s_frontend_path)'
+
+  - task: KubernetesManifest@1
+    displayName: 'Install application ingress'
+    inputs:
+      action: 'deploy'
+      connectionType: 'azureResourceManager'
+      azureSubscriptionConnection: 'Azure ACR Subscription (015efe71-65eb-4453-a4b3-ba0b62119434)'
+      azureResourceGroup: 'tuanphama3ResourceGroup'
+      kubernetesCluster: 'tuanphama3AKSCluster'
+      useClusterAdmin: true
+      namespace: 'aks-tuanphama3-ns'
+      manifests: '$(k8s_ingress_path)'
